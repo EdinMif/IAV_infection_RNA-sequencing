@@ -9,9 +9,9 @@
 # DOI badge of current version:
 # Last updated on: 08/03/2017
 
-################################
+########################################
 # File Transfer and change permissions #
-################################
+########################################
 
 # create directory for raw files
 mkdir -p $HOME/IAV/rawfiles
@@ -29,11 +29,9 @@ do chmod 555 $file; done
 for file in `find $HOME/IAV/rawfiles/D3 -name *.fastq`; \
 do gzip -9 $file; done
 
+
 # File names correspond to:
 # labCode_TreatmentGroup_Timepoint_fastq.gz
-
-
-
 
 
 ###########################################
@@ -44,68 +42,163 @@ do gzip -9 $file; done
 # for details: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 
 # Create and enter the quality check output directory:
-mkdir -p $HOME/ejmifsud/IAVtimecourse/quality_check/pre-filtering
+mkdir -p $HOME/IAV/quality_check/pre-filtering/chip2 
 cd !$
 
+# To create a job on the CZC supercomputer we must use the code bsub -q C
 # Run FastQC in one file to see if it's working well:
-fastqc -o $HOME/ejmifsud/IAVtimecourse/quality_check/pre-filtering \
---noextract --nogroup -t 2 \
-/HOME/ejmifsud/D3/ .fastq.gz
 
-### Moved this folder to my laptop using WinSCP
+
+bsub -q C fastqc -o /home/ejmifsud/IAV/quality_check/pre-filtering/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
+IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz 
+
+### Moved this folder to my laptop using Filezilla.
 ### and checked the HTML report. It worked fine.
 
 # Create a bash script to perform FastQC quality check on all fastq.gz files:
-for file in `find /HOME/ejmifsud/D3/ \
--name *fastq.gz`; do echo "fastqc --noextract --nogroup -t 1 \
--o $HOME/ejmifsud/IAVtimecourse/quality_check/pre-filtering $file" \
->> fastqc.sh; done;
+cd $HOME/IAV/quality_check/pre-filtering
 
-# Split and run all scripts on Stampede:
-split -d -l 70 fastqc.sh fastqc.sh.
-for script in `ls fastqc.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
-
-# Check if all the files were processed:
-for file in `ls fastqc.sh.0*.nohup`; \
-do more $file | grep "Failed to process file" >> failed_fastqc.txt
-done
+for file in `find $HOME/IAV/rawfiles/D3/ \
+-name *fastq.gz`; do echo "fastqc --noextract --nogroup -t 5 \
+-o $HOME/IAV/quality_check/pre-filtering $file" \
+>> fastqc.sh; done
+# count the number of lins in the file to make sure the correct files have been created
+wc -l fastqc.sh 
+nano fastqc.sh
+#!/bin/sh
+#BSUB -J fastqc_job
+#BSUB -n 5
+bsub -q C < fastqc.sh
 
 # Deleted all the HTML files:
 rm -r *.html
 
+# because we process the samples using the queue to process the job the standerr has 
+#all the information that would be shown as in the nohub folder
+# This information contains the fastQC run information and must be looked at to ensure all
+# files have successfully been run
+# Check if all the files were processed:
+
+more 442391.standout | grep 'Analysis complete' | wc -l
+  
+# Files were transfered to computer using Filezilla 
+
 # Check all output from FastQC:
-mkdir $HOME/ejmifsud/IAVtimecourse/quality_check/pre-filtering/tmp
+mkdir $HOME/IAV/quality_check/pre-filtering/tmp
 
 for file in `ls *_fastqc.zip`; do unzip \
-$file -d $HOME/ejmifsud/IAVtimecourse/quality_check/pre-filtering/tmp; \
+$file -d $HOME/IAV/quality_check/pre-filtering/tmp; \
 done;
 
 for file in \
-`find $HOME/ejmifsud/IAVtimeCourse/quality_check/pre-filtering/tmp \
+`find $HOME/IAV/quality_check/pre-filtering/tmp \
 -name summary.txt`; do more $file >> reports_pre-filtering.txt; done
 
 for file in \
-`find $HOME/ejmifsud/IAVtimeCourse/quality_check/pre-filtering/tmp \
+`find $HOME/IAV/quality_check/pre-filtering/tmp \
 -name fastqc_data.txt`; do head -n 10 $file >> basic_stats_pre-filtering.txt; \
 done
 
 # Remove temporary folder and its files:
-rm -rf $HOME/ejmifsud/IAVtimeCourse/quality_check/pre-filtering/tmp
+rm -r $HOME/IAV/quality_check/pre-filtering/tmp
+
+### After checking the number of sequences it was apparent there was an issue with 
+### Chip-2 and the file transfer was corrupted. Therefore the process of fastQC analysis 
+### for Chip-2 had to be repeated
+# Files were downloaded from ion torrent server and transfered from my macbook air 
+# to the CZC supercomputer using fileZilla
+
+# Create a new folder for the new raw files 
+mkdir  -p $HOME/IAV/rawfiles/D3chip2
+cd !$
+
+# Change directory permissions to read and execute only:
+for file in `find $HOME/IAV/rawfiles/D3chip2 -name *.fastq`; \
+do chmod 555 $file; done
+
+# compress fastq files
+
+for file in `find $HOME/IAV/rawfiles/D3chip2/R_2017_02_14_EJM_D3_pi_take_2_ -name *.fastq`; \
+do echo 'gzip -9 -o $HOME/IAV/rawfiles/D3chip2 $file'; >> compress.sh; done
+
+wc -l compress.sh 
+nano compress.sh
+#!/bin/sh
+#BSUB -J compress_job
+#BSUB -n 3
+bsub -q C < compress.sh 
+# all of the above failed so files were zipped overnight using the following loop
+
+for file in `find $HOME/IAV/rawfiles/D3chip2 -name *.fastq`; \
+do gzip -9 $file; done
+
+########################
+# Fastqc quality check #
+########################
+
+cd $HOME/IAV/quality_check/pre-filtering
+
+for file in `find $HOME/IAV/rawfiles/D3chip2/ \
+-name *fastq.gz`; do echo "fastqc --noextract --nogroup -t 3 \
+-o $HOME/IAV/quality_check/pre-filtering $file" \
+>> fastqcD3c2.sh; done
+
+wc -l fastqc.sh 
+nano fastqc.sh
+#!/bin/sh
+#BSUB -J fastqc_job
+#BSUB -n 3
+bsub -q C < fastqcD3c2.sh
+
+#check the standout
+
+more 443622.stdout | grep 'Analysis complete' | wc -l
+
+# remove html files 
+rm -r *.html
+
+# Check all output from FastQC:
+mkdir $HOME/IAV/quality_check/pre-filtering/tmp
+
+for file in `ls *_fastqc.zip`; do unzip \
+$file -d $HOME/IAV/quality_check/pre-filtering/tmp; \
+done;
+
+for file in \
+`find $HOME/IAV/quality_check/pre-filtering/tmp \
+-name summary.txt`; do more $file >> reports_pre-filtering.txt; done
+
+for file in \
+`find $HOME/IAV/quality_check/pre-filtering/tmp \
+-name fastqc_data.txt`; do head -n 10 $file >> basic_stats_pre-filtering.txt; \
+done
+
+# Remove temporary folder and its files:
+rm -r $HOME/IAV/quality_check/pre-filtering/tmp
 
 ##################################################################
 # Adapter-contamination and quality filtering of raw FASTQ files #
 ##################################################################
 
-# Required software is ngsShoRT (version 2.2). More information can be found
-# here: http://research.bioinformatics.udel.edu/genomics/ngsShoRT/index.html
+# Required software is cutadapts (version 1.12). More information can be found
+# here: http://cutadapt.readthedocs.io/en/stable/guide.html
 
 # Create a working directory for filtered reads:
-mkdir $HOME/ejmifsud/IAVtimeCourse/fastq_sequence/
-cd $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/
+mkdir $HOME/IAV/fastq_sequence/
+cd $HOME/IAV/fastq_sequence/
+
+# Run cutadapt in one file to see if it's working well and determine the parameters:
+
+bsub -q C cutadapt -a ATCACCGACTGCCCATAGAGAGGCTGAGAC -g CTAAGGTAAC -g CCTCTCTATGGGCAGTCGGTGAT \
+-e 0.3 -m 50 --quality-base 20 --discard-trimmed -o /home/ejmifsud/IAV/fastq_sequence.fastq \
+/home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
+IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz
+
+
+
+
 
 # Run ngsShoRT in one pair of reads to check if it's working:
 nohup perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 20 -mode trim -min_rl 100 \
