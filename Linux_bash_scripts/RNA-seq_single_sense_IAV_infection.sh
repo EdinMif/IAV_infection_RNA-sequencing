@@ -134,6 +134,7 @@ bsub -q C < compress.sh
 for file in `find $HOME/IAV/rawfiles/D3chip2 -name *.fastq`; \
 do gzip -9 $file; done
 
+
 ########################
 # Fastqc quality check #
 ########################
@@ -178,6 +179,10 @@ done
 # Remove temporary folder and its files:
 rm -r $HOME/IAV/quality_check/pre-filtering/tmp
 
+# Once files were checked the contents of D3chip D3chip2/R_2017_02_14_EJM_D3_pi_take_2
+# fastqc files were moved to D3 folder using Filezilla and the corrupt files were deleted 
+
+
 ##################################################################
 # Adapter-contamination and quality filtering of raw FASTQ files #
 ##################################################################
@@ -196,159 +201,122 @@ bsub -q C cutadapt -a ATCACCGACTGCCCATAGAGAGGCTGAGAC -g CTAAGGTAAC -g CCTCTCTATG
 /home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
 IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz
 
+#check the fastq file 
+bsub -q C fastqc -o /home/ejmifsud/IAV/fastq_sequence/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/fastq_sequence.fastq
+
+# Trial number 2 cutadapt
+bsub -q C cutadapt -a ATCACCGACTGCCCATAGAGAGGCTGAGAC -g CCTCTCTATGGGCAGTCGGTGAT \
+-m 50 --quality-base 20 --discard-trimmed \
+-o /home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3.fastq \
+/home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
+IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz
+
+bsub -q C fastqc -o /home/ejmifsud/IAV/fastq_sequence/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3.fastq
+
+# Trial Number 3 cutadapt 
+bsub -q C cutadapt -a ATCACCGACTGCCCATAGAGAGGCTGAGAC -g CCTCTCTATGGGCAGTCGGTGAT \
+-m 50 -q 20,20 --discard-trimmed \
+-o /home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3.fastq \
+/home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
+IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz
+
+bsub -q C fastqc -o /home/ejmifsud/IAV/fastq_sequence/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3.fastq
+
+# Trial Number 4 
+
+bsub -q C cutadapt -a ATCACCGACTGCCCATAGAGAGGCTGAGAC -g CCTCTCTATGGGCAGTCGGTGAT \
+-m 50 -q 24,24 --discard-trimmed \
+-o /home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3_2.fastq \
+/home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
+IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz
+
+bsub -q C fastqc -o /home/ejmifsud/IAV/fastq_sequence/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3_2.fastq
+
+
+# Trial number 6 
+
+bsub -q C cutadapt -q 24,24 -a ATCACCGACTGCCCATAGAGAGGCTGAGAC -g CCTCTCTATGGGCAGTCGGTGAT \
+-n 5 -m 50 -M 240 --discard-trimmed \
+-o /home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3_4.fastq \
+/home/ejmifsud/IAV/rawfiles/D3/R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__/\
+IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz
+
+bsub -q C fastqc -o /home/ejmifsud/IAV/fastq_sequence/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3_4.fastq
 
 
 
+# Run cutadpt on all samples 
 
-# Run ngsShoRT in one pair of reads to check if it's working:
-nohup perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 20 -mode trim -min_rl 100 \
--pe1 /workspace/storage/kmcloughlin/RNAseqTimeCourse/A6522_W10_U_R1_004.fastq.gz \
--pe2 /workspace/storage/kmcloughlin/RNAseqTimeCourse/A6522_W10_U_R2_004.fastq.gz \
--o /home/ccorreia/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6522_W10_U_004 \
--methods 5adpt_lqr -5a_f Illumina_PE_adapters.txt -5a_mp 90 -5a_del 0 \
--5a_ins 0 -5a_fmi 100 -5a_axn kr -lqs 20 -lq_p 25 -gzip &
+for file in `find $HOME/IAV/rawfiles/D3/ \
+-name *fastq.gz`; \
+do sample=`basename $file`; \
+echo "cutadapt -q 24,24 -a ATCACCGACTGCCCATAGAGAGGCTGAGAC \
+-g CCTCTCTATGGGCAGTCGGTGAT -n 5 -m 50 -M 240 --discard-trimmed \
+-o $HOME/IAV/fastq_sequence/trimmed_${sample} $file" >> cutadapt.sh; done
 
-# Create bash scripts to perform filtering of each FASTQ file, keeping the
-# sequencing lane information:
-for file in `find /workspace/storage/kmcloughlin/RNAseqTimeCourse/ \
--name *R1_001.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/R1(_00.\.fastq.gz)$/R2$1/'`; \
-sample=`basename $file | perl -p -e 's/R1(_00.\.fastq.gz)$/001/'`; \
-echo "perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 15 -mode trim -min_rl 100 \
--pe1 $file -pe2 $file2 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/$sample \
--methods 5adpt_lqr -5a_f Illumina_PE_adapters.txt -5a_mp 90 \
--5a_del 0 -5a_ins 0 -5a_fmi 100 -5a_axn kr -lqs 20 -lq_p 25 -gzip" \
->> filtering.001.sh; done;
+wc -l cutadapt.sh 
 
-for file in `find /workspace/storage/kmcloughlin/RNAseqTimeCourse/ \
--name *R1_002.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/R1(_00.\.fastq.gz)$/R2$1/'`; \
-sample=`basename $file | perl -p -e 's/R1(_00.\.fastq.gz)$/002/'`; \
-echo "perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 15 -mode trim -min_rl 100 \
--pe1 $file -pe2 $file2 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/$sample \
--methods 5adpt_lqr -5a_f Illumina_PE_adapters.txt -5a_mp 90 \
--5a_del 0 -5a_ins 0 -5a_fmi 100 -5a_axn kr -lqs 20 -lq_p 25 -gzip" \
->> filtering.002.sh; done;
+nano cutadapt.sh
+#!/bin/sh
+#BSUB -J cutadapt_job
+#BSUB -n 5
 
-for file in `find /workspace/storage/kmcloughlin/RNAseqTimeCourse/ \
--name *R1_003.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/R1(_00.\.fastq.gz)$/R2$1/'`; \
-sample=`basename $file | perl -p -e 's/R1(_00.\.fastq.gz)$/003/'`; \
-echo "perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 15 -mode trim -min_rl 100 \
--pe1 $file -pe2 $file2 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/$sample \
--methods 5adpt_lqr -5a_f Illumina_PE_adapters.txt -5a_mp 90 \
--5a_del 0 -5a_ins 0 -5a_fmi 100 -5a_axn kr -lqs 20 -lq_p 25 -gzip" \
->> filtering.003.sh; done;
+bsub -q C < cutadapt.sh
 
-for file in `find /workspace/storage/kmcloughlin/RNAseqTimeCourse/ \
--name *R1_004.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/R1(_00.\.fastq.gz)$/R2$1/'`; \
-sample=`basename $file | perl -p -e 's/R1(_00.\.fastq.gz)$/004/'`; \
-echo "perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 15 -mode trim -min_rl 100 \
--pe1 $file -pe2 $file2 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/$sample \
--methods 5adpt_lqr -5a_f Illumina_PE_adapters.txt -5a_mp 90 \
--5a_del 0 -5a_ins 0 -5a_fmi 100 -5a_axn kr -lqs 20 -lq_p 25 -gzip" \
->> filtering.004.sh; done;
-
-for file in `find /workspace/storage/kmcloughlin/RNAseqTimeCourse/ \
--name *R1_005.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/R1(_00.\.fastq.gz)$/R2$1/'`; \
-sample=`basename $file | perl -p -e 's/R1(_00.\.fastq.gz)$/005/'`; \
-echo "perl /usr/local/src/ngsShoRT_2.2/ngsShoRT.pl -t 15 -mode trim -min_rl 100 \
--pe1 $file -pe2 $file2 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/$sample \
--methods 5adpt_lqr -5a_f Illumina_PE_adapters.txt -5a_mp 90 \
--5a_del 0 -5a_ins 0 -5a_fmi 100 -5a_axn kr -lqs 20 -lq_p 25 -gzip" \
->> filtering.005.sh; done;
-
-# Run all scripts on Stampede:
-for script in `ls filtering.00*.sh`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
-
-# Check that all files were processed:
-for file in `ls filtering.00*.sh.nohup`; \
-do grep -o 'Done-MAIN' $file | wc -l; done
-
-# Compress files with discarded reads:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence \
--name extracted_*.txt`; do echo "gzip -9 $file" >> discarded_compression.sh; \
-done;
-
-# Split and run all scripts on Stampede:
-split -d -l 70 discarded_compression.sh discarded_compression.sh.
-for script in `ls discarded_compression.sh.*`
-do
-chmod 755 $script
-nohup ./$script &
-done
 
 ################################################
 # FastQC quality check of filtered FASTQ files #
 ################################################
-
 # Required software is FastQC v0.11.5, consult manual/tutorial
 # for details: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+# Check all output from FastQC:
+# make an output folder for Fastqc files 
 
-# Create and enter the quality check output directory:
-mkdir $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering
-cd $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering
+mkdir $HOME/IAV/fastq_sequence/trimmed_fastq
 
-# Run FastQC in one file to see if it's working well:
-fastqc -o $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering \
---noextract --nogroup -t 10 \
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6644_W6_F_001/trimmed_A6644_W6_F_R1_001.fastq.gz
+for file in `find $HOME/IAV/fastq_sequence/ \
+-name *fastq.gz`; do echo "fastqc --noextract --nogroup -t 5 \
+-o $HOME/IAV/fastq_sequence/trimmed_fastq $file" \
+>> trimmed_fastqc.sh; done
 
-### Moved this folder to my laptop using WinSCP
-### and checked the HTML report. It worked fine.
+wc -l trimmed_fastqc.sh
 
-# Create a bash script to perform FastQC quality check on all filtered
-# FASTQ files:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/ \
--name *_R*_00*.fastq.gz`; do echo "fastqc --noextract --nogroup -t 1 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering $file" \
->> fastqc_filt.sh; done;
 
-# Split and run all scripts on Stampede:
-split -d -l 75 fastqc_filt.sh fastqc_filt.sh.
-for script in `ls fastqc_filt.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
+nano trimmed_fastqc.sh
+#!/bin/sh
+#BSUB -J trimmed_fastq_job
+#BSUB -n 5
 
-# Check if all the files were processed:
-for file in `ls fastqc_filt.sh.0*.nohup`; \
-do more $file | grep "Failed to process file" >> failed_fastqc.txt
-done
+bsub -q C < trimmed_fastqc.sh
 
-# Deleted all the HTML files:
+more 446473.stdout | grep 'Analysis complete' |wc -l
+
+# remove html files 
 rm -r *.html
 
-# Check all output from FastQC:
-mkdir $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp
 
 for file in `ls *_fastqc.zip`; do unzip \
-$file -d $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp; \
+$file -d $HOME/IAV/fastq_sequence/trimmed_fastq/tmp; \
 done;
 
 for file in \
-`find $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp \
--name summary.txt`; do more $file >> reports_post-filtering.txt; done
+`find $HOME/IAV/fastq_sequence/trimmed_fastq/tmp \
+-name summary.txt`; do more $file >> reports_pre-filtering.txt; done
 
 for file in \
-`find $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp \
--name fastqc_data.txt`; do head -n 10 $file >> basic_stats_post-filtering.txt; \
+`find $HOME/IAV/fastq_sequence/trimmed_fastq/tmp \
+-name fastqc_data.txt`; do head -n 10 $file >> basic_stats_pre-filtering.txt; \
 done
-
-# Remove temporary folder and its files:
-rm -rf $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp
 
 ##############################################################################
 # Alignment of FASTQ files against the Bos taurus reference genome with STAR #
@@ -357,23 +325,62 @@ rm -rf $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp
 # Required software is STAR 2.5.1b, consult manual/tutorial for details:
 https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
 
-# Download Bos taurus reference genome, version UMD3.1.1 from NCBI:
-mkdir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/source_file
-cd /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/source_file
-nohup wget -o logfile -r -nd \
-"ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000003055.6_Bos_taurus_UMD_3.1.1/GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.fna.gz" \
-&
-gunzip GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.fna.gz
+# Download Mus_musculus genome from Ensemble website 
 
-# Download annotation file for UMD3.1.1 NCBI Bos taurus Annotation Release 105:
-mkdir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/annotation_file
-cd /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/annotation_file
-wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000003055.6_Bos_taurus_UMD_3.1.1/GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.gff.gz
-gunzip GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.gff.gz
+mkdir -p $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
+#exit the internal node to enter the management node and download the file 
+exit
+cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
+wget ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.toplevel.fa.gz
 
+#log back into the internal node 
+
+cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
+gunzip Mus_musculus.GRCm38.dna.toplevel.fa.gz
+
+
+# Download Mus_musculus genome from Ensemble website 
+
+mkdir -p $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
+#exit the internal node to enter the management node and download the file 
+exit
+cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
+wget ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.toplevel.fa.gz
+
+#log back into the internal node 
+
+cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
+gunzip Mus_musculus.GRCm38.dna.toplevel.fa.gz
+
+
+# Download annotation file for Mus_musculus genome version GRC38 Annotation Release-87 :
+mkdir $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file
+
+# exit internal node 
+exit 
+cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file
+wget ftp://ftp.ensembl.org/pub/release-87/gtf/mus_musculus/Mus_musculus.GRCm38.87.gtf.gz
+ 
+# Log back into the Internal node 
+ cd cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file
+ gunzip Mus_musculus.GRCm38.87.gtf.gz
+ 
+ 
 # Generate genome indexes files using annotations:
-mkdir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index
-cd /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index
+mkdir $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index
+cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index
+
+STAR --runThreadN 20 --runMode genomeGenerate \
+--genomeDir /$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index \
+-- genomeFastaFiles \
+$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file/Mus_musculus.GRCm38.dna.toplevel.fa \
+--sjdbGTFfile /$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file/Mus_musculus.GRCm38.87.gtf \
+--sjdbGTFtagExonParentTranscript Parent --sjdbOverhang 99 \
+--outFileNamePrefix  \
+$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index
+
+
+
 
 nohup STAR --runThreadN 20 --runMode genomeGenerate \
 --genomeDir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index \
