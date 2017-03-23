@@ -318,9 +318,9 @@ for file in \
 -name fastqc_data.txt`; do head -n 10 $file >> basic_stats_pre-filtering.txt; \
 done
 
-##############################################################################
-# Alignment of FASTQ files against the Bos taurus reference genome with STAR #
-##############################################################################
+################################################################################
+# Alignment of FASTQ files against the Mus_musculus reference genome with STAR #
+################################################################################
 
 # Required software is STAR 2.5.1b, consult manual/tutorial for details:
 https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
@@ -352,8 +352,9 @@ wget ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/dna/Mus_musculus.GR
 cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file
 gunzip Mus_musculus.GRCm38.dna.toplevel.fa.gz
 
-
-# Download annotation file for Mus_musculus genome version GRC38 Annotation Release-87 :
+# For future reference this is the website to download the genome 
+# ftp://ftp.ensembl.org/pub/release-87/gtf/mus_musculus/
+# Download annotation file for Mus_musculus genome version GRC38 Annotation Release-87:
 mkdir $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file
 
 # exit internal node 
@@ -365,97 +366,80 @@ wget ftp://ftp.ensembl.org/pub/release-87/gtf/mus_musculus/Mus_musculus.GRCm38.8
  cd cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file
  gunzip Mus_musculus.GRCm38.87.gtf.gz
  
- 
+# For future reference this is the website to download annotation:
+# ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/dna/ 
 # Generate genome indexes files using annotations:
 mkdir $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index
 cd $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index
 
-STAR --runThreadN 20 --runMode genomeGenerate \
+# NB: sjdboverhang should not exceed 100 as this does not help alignment and will 
+#cause erros to occur when indexing the genome
+bsub -q C STAR --runThreadN 20 --runMode genomeGenerate \
 --genomeDir /$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index \
 -- genomeFastaFiles \
 $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/source_file/Mus_musculus.GRCm38.dna.toplevel.fa \
 --sjdbGTFfile /$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file/Mus_musculus.GRCm38.87.gtf \
---sjdbGTFtagExonParentTranscript Parent --sjdbOverhang 99 \
+--sjdbOverhang 100 \
 --outFileNamePrefix  \
 $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index
 
 
-
-
-nohup STAR --runThreadN 20 --runMode genomeGenerate \
---genomeDir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index \
---genomeFastaFiles \
-/workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/source_file/GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.fna \
---sjdbGTFfile /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/annotation_file/GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.gff \
---sjdbGTFtagExonParentTranscript Parent --sjdbOverhang 99 \
---outFileNamePrefix \
-/workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index/Btau-UMD3.1.1 &
-
 # Create and enter alignment working directory:
-mkdir $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment
-cd $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment
+mkdir $HOME/IAV/STAR-2.5.1b_alignment
+cd $HOME/IAV/STAR-2.5.1b_alignment
 
 # Mapping reads from one FASTQ file to the indexed genome,
 # to check if it works well:
-nohup STAR --runMode alignReads --runThreadN 1 --genomeLoad LoadAndRemove \
---genomeDir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index/ \
---readFilesIn \
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_001/trimmed_A6511_W10_F_R1_001.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_002/trimmed_A6511_W10_F_R1_002.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_003/trimmed_A6511_W10_F_R1_003.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_004/trimmed_A6511_W10_F_R1_004.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_005/trimmed_A6511_W10_F_R1_005.fastq.gz \
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_001/trimmed_A6511_W10_F_R2_001.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_002/trimmed_A6511_W10_F_R2_002.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_003/trimmed_A6511_W10_F_R2_003.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_004/trimmed_A6511_W10_F_R2_004.fastq.gz,\
-$HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence/A6511_W10_F_005/trimmed_A6511_W10_F_R2_005.fastq.gz \
---readFilesCommand gunzip -c --outFilterMultimapNmax 10 \
---outFilterMismatchNmax 10 --outFileNamePrefix ./A6511_W10_F_ \
---outSAMtype BAM Unsorted --outReadsUnmapped Fastx &
 
-# Create a bash script to perform alignment of paired FASTQ files:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence \
--name *_R1_001.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/(_00.)/_002/g'`; \
-file3=`echo $file | perl -p -e 's/(_00.)/_003/g'`; \
-file4=`echo $file | perl -p -e 's/(_00.)/_004/g'`; \
-file5=`echo $file | perl -p -e 's/(_00.)/_005/g'`; \
-read1=`echo $file | perl -p -e 's/(R1_00.)/R2_001/'`; \
-read2=`echo $file2 | perl -p -e 's/(R1_00.)/R2_002/'`; \
-read3=`echo $file3 | perl -p -e 's/(R1_00.)/R2_003/'`; \
-read4=`echo $file4 | perl -p -e 's/(R1_00.)/R2_004/'`; \
-read5=`echo $file5 | perl -p -e 's/(R1_00.)/R2_005/'`; \
-sample=`basename $file | perl -p -e 's/\_R1_001\.fastq\.gz//'`; \
+bsub -q C STAR --runMode alignReads --runThreadN 1 --genomeLoad LoadAndRemove \
+--genomeDir $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index \
+--readFilesIn \
+$HOME/IAV/fastq_sequence/trimmed_IonXpressRNA_001.R_2017_02_02_16_06_09_sn247770192_sn247770192-4-170202_EJM_D3_pi__.fastq.gz \
+--readFilesCommand gunzip -c --outFilterMultimapNmax 10 \
+--outFilterMismatchNmax 10 --outFileNamePrefix ./trimmed_IonXpressRNA_ \
+--outSAMtype BAM Unsorted --outReadsUnmapped Fastx 
+
+# FASTQC of Trial 
+
+bsub -q C fastqc -o /home/ejmifsud/IAV/STAR-2.5.1b_alignment/ \
+--noextract --nogroup -t 1 \
+/home/ejmifsud/IAV/fastq_sequence/1_PBS1_D3_4.fastq
+
+# Script for alignment 
+
+for file in `find $HOME/IAV/fastq_sequence/ \
+-name *fastq.gz`; \
+do sample=`basename $file | perl -p -e 's/_2017_.+\.fastq\.gz//'`; \
 foldername=`basename $sample | perl -p -e 's/trimmed\_//'`; \
-echo "mkdir $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment/$foldername; \
-cd $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment/$foldername; \
-STAR --runMode alignReads --runThreadN 1 --genomeLoad LoadAndRemove \
---genomeDir /workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/STAR-2.5.1b_index/ \
---readFilesIn $file,$file2,$file3,$file4,$file5 \
-$read1,$read2,$read3,$read4,$read5 --readFilesCommand gunzip -c \
+echo "mkdir $HOME/IAV/STAR-2.5.1b_alignment/$foldername; \
+cd $HOME/IAV/STAR-2.5.1b_alignment/$foldername; \
+STAR --runMode alignReads --runThreadN 20 --genomeLoad LoadAndRemove \
+--genomeDir $HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/STAR-2.5.1b_index \
+--readFilesIn $file --readFilesCommand gunzip -c \
 --outFilterMultimapNmax 10 --outFilterMismatchNmax 10 \
---outFileNamePrefix ./${foldername}_ --outSAMtype BAM Unsorted \
+--outFileNamePrefix ./$foldername --outSAMtype BAM Unsorted \
 --outSAMattrIHstart 0 --outSAMattributes Standard --outReadsUnmapped Fastx" \
 >> alignment.sh; \
 done
 
-# Split and run all scripts on Stampede:
-split -d -l 70 alignment.sh alignment.sh.
-for script in `ls alignment.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
+nano alignment.sh
+#!/bin/sh
+#BSUB -J alignment_job
+#BSUB -n 20
 
-# Check nohup.out file to see how many jobs finished successfully:
-grep -c 'Finished successfully' alignment.sh.00.nohup
-grep -c 'Finished successfully' alignment.sh.01.nohup
+bsub -q C <  alignment.sh
 
+# check the JOB#.stdout in the output file to ensure that the job was complete 
+#Perl script Star report opener was forked from carol Coreia github account and then 
+#transfered from laptop to the CZC supercomputer using Filezilla and placed 
+# in a scripts folder 
 # Merge all STAR log.final.out files into a single file:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment \
+for file in `find $HOME/IAV/STAR-2.5.1b_alignment \
 -name *Log.final.out`; \
-do perl /home/nnalpas/SVN/star_report_opener.pl -report $file; done;
+do perl /$HOME/Scripts/star_report_opener.pl -report $file; done;
+
+# star_report_opener.pl report was transfered to the laptop using filezilla 
+
 
 #############################################
 # FastQC quality check of aligned BAM files #
@@ -465,49 +449,49 @@ do perl /home/nnalpas/SVN/star_report_opener.pl -report $file; done;
 # for details: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 
 # Create and go to working directory:
-mkdir $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment
-cd $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment
+mkdir $HOME/IAV/quality_check/post_alignment
+cd $HOME/IAV/quality_check/post_alignment
 
 # Create a bash script to perform FastQC quality check on aligned SAM files:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment \
+for file in `find $HOME/IAV/STAR-2.5.1b_alignment \
 -name *.bam`; do echo "fastqc --noextract --nogroup -t 2 \
--o $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment $file" >> \
+-o $HOME/IAV/quality_check/post_alignment $file" >> \
 fastqc_aligned.sh; done;
 
-# Split and run all scripts on Stampede
-split -d -l 35 fastqc_aligned.sh fastqc_aligned.sh.
-for script in `ls fastqc_aligned.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
+ls 
+wc -l fastqc_aligned.sh 
+
+nano fastqc_aligned.sh
+#!/bin/sh
+#BSUB -J fastqc_aligned_job
+#BSUB -n 10
+
+bsub -q C < fastqc_aligned.sh
+# Check the Job#.stdout to ensure that the job is complete
+more 448741.stdout
 
 # Delete all the HTML files:
 rm -r *.html
 
 # Check all output from FastQC:
-mkdir $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment/tmp
+mkdir $HOME/IAV/quality_check/post_alignment/tmp
 
 for file in `ls *_fastqc.zip`; do unzip \
-$file -d $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment/tmp; \
+$file -d $HOME/IAV/quality_check/post_alignment/tmp; \
 done
 
 for file in \
-`find $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment/tmp \
+`find $HOME/IAV/quality_check/post_alignment/tmp \
 -name summary.txt`; do more $file >> reports_post-alignment.txt; done
 
 for file in \
-`find $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post_alignment/tmp \
+`find $HOME/IAV/quality_check/post_alignment/tmp \
 -name fastqc_data.txt`; do head -n 10 $file >> basic_stats_post_alignment.txt; \
 done
 
 # Check if all files were processed:
 grep -c '##FastQC' basic_stats_post_alignment.txt
 grep -c 'Basic Statistics' reports_post-alignment.txt
-grep -c 'Analysis complete' fastqc_aligned.sh.00.nohup
-grep -c 'Analysis complete' fastqc_aligned.sh.01.nohup
-grep -c 'Analysis complete' fastqc_aligned.sh.02.nohup
-grep -c 'Analysis complete' fastqc_aligned.sh.03.nohup
 
 # Remove temporary folder:
 rm -r tmp/
@@ -521,40 +505,77 @@ rm -r tmp/
 # http://bioinf.wehi.edu.au/subread-package/SubreadUsersGuide.pdf
 
 # Create working directories:
-cd $HOME/scratch/PPDbRNAseqTimeCourse/
-mkdir -p Count_summarisation/sense
-cd $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense
+mkdir $HOME/IAV/count_summerisation
+cd  $HOME/IAV/count_summerisation
 
 # Run featureCounts with one sample to check if it is working fine:
-featureCounts -a \
-/workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/annotation_file/GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.gff \
--B -p -C -R -s 1 -T 15 -t gene -g Dbxref -o ./counts.txt \
-$HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment/A6511_W10_F/A6511_W10_F_Aligned.out.bam
+bsub -q C featureCounts -a \
+$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file/Mus_musculus.GRCm38.87.gtf \
+-R -s 1 -T 10 -t gene -g gene_id -o ./counts.text \
+$HOME/IAV/STAR-2.5.1b_alignment/IonXpressRNA_001.R/IonXpressRNA_001.RAligned.out.bam
+
+bsub -q C featureCounts -a \
+$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file/Mus_musculus.GRCm38.87.gtf \
+-R - s 1 -T 10 -t gene -g gene_id -o ./counts08.text \
+$HOME/IAV/STAR-2.5.1b_alignment/IonXpressRNA_008.R/IonXpressRNA_008.RAligned.out.bam
+
+
 
 # Create a bash script to run featureCounts on BAM file containing multihits and
 # uniquely mapped reads using the reversely stranded parameter:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/STAR-2.5.1b_alignment \
--name *_Aligned.out.bam`; \
-do sample=`basename $file | perl -p -e 's/_Aligned.out.bam//'`; \
-echo "mkdir $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/$sample; \
-cd $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/$sample; \
+for file in `find $HOME/IAV/STAR-2.5.1b_alignment/ \
+-name *Aligned.out.bam`; \
+do sample=`basename $file | perl -p -e 's/Aligned\.out\.bam//'`; \
+foldername=`basename $sample | perl -p -e 's/\.R\_//'`; \
+echo "mkdir $HOME/IAV/count_summerisation/$foldername; \
+cd $HOME/IAV/count_summerisation/$foldername; \
 featureCounts -a \
-/workspace/storage/genomes/bostaurus/UMD3.1.1_NCBI/annotation_file/GCF_000003055.6_Bos_taurus_UMD_3.1.1_genomic.gff \
--B -p -C -R -s 1 -T 10 -t gene -g Dbxref \
+$HOME/IAV/genomes/mus_musculus/ensemble_GRCm38/annotation_file/Mus_musculus.GRCm38.87.gtf \
+-R -s 1 -T 10 -t gene -g gene_id \
 -o ${sample}_sense-counts.txt $file" >> sense_count.sh; done
 
-# Split and run all scripts on Stampede:
-split -d -l 70 sense_count.sh sense_count.sh.
-for script in `ls sense_count.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
+nano sense_count.sh
+#!/bin/sh
+#BSUB -J feature_counts_job
+#BSUB -n 10
+
+bsub -q C < sense_count.sh
+
+# Check if all files were processed by checking the error report
+less 449532.stderr
+
+
+#####################################
+
+
+# Create bash script to merge stats info from .featureCounts from all samples
+# into a single file:
+for file in `find $HOME/IAV/count_summerisation/ \
+-name *.featureCounts`; do echo echo \
+"\`basename $file\` \`cut $file -f2 | sort | uniq -c | perl -p -e 's/\n/ /'\` >> \
+annotation_summary_sense.txt" >> annotation_summary_sense.sh
 done
 
-# Check if all files were processed:
-grep -c 'Read assignment finished.' sense_count.sh.00.nohup
-grep -c 'Read assignment finished.' sense_count.sh.01.nohup
+nano annoation_summary_sense.sh
+#!/bin/sh
+#BSUB -J annotation_summary_job
+#BSUB -n 10
 
+bsub -q C < annoation_summary_sense.sh
+
+# Check that all files were processed:
+grep -c '.featureCounts' annotation_summary_sense.txt
+
+# Copy all *sense-counts.txt files to temporary folder:
+mkdir $HOME/IAV/count_summerisation/tmp
+
+for file in `find $HOME/IAV/count_summerisation/ \
+-name *sense-counts.txt`; do cp $file \
+-t $HOME/IAV/count_summerisation/tmp; \
+done
+
+# Transfer all files from tmp to laptop, using FileZilla then remove tmp folder:
+rm -r tmp
 
 ############################
 
@@ -563,9 +584,9 @@ have to rename
 
 # Rename .featureCounts files:
 for folder in \
-`ls $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/A6*`; \
+`ls $HOME/IAV/Count_summarisation/Ion*`; \
 do file2=`echo $folder`; \
-echo "cd $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/$file2; \
+echo "cd  $HOME/IAV/Count_summarisation/$file2; \
 mv ./*_Aligned.out.sam.featureCounts ./${file2}_Aligned.sam.featureCounts" >> \
 rename.sh; done;
 
@@ -576,39 +597,6 @@ do outfile=`basename $file | perl -p -e \
 's/home.ccorreia.scratch.PPDbRNAseqTimeCourse.STAR-2.5.1b_alignment.A*_*_*.//'`; \
 mv $file $outfile >> rename.sh; done
 
-
-#####################################
-
-
-# Create bash script to merge stats info from .featureCounts from all samples
-# into a single file:
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/ \
--name *.featureCounts`; do echo echo \
-"\`basename $file\` \`cut $file -f2 | sort | uniq -c | perl -p -e 's/\n/ /'\` >> \
-annotation_summary_sense.txt" >> annotation_summary_sense.sh
-done
-
-# Split and run scripts on Stampede:
-split -d -l 70 annotation_summary_sense.sh annotation_summary_sense.sh.
-for script in `ls annotation_summary_sense.sh.*`
-do
-chmod 755 $script
-nohup ./$script &
-done
-
-# Check that all files were processed:
-grep -c '.featureCounts' annotation_summary_sense.txt
-
-# Copy all *sense-counts.txt files to temporary folder:
-mkdir $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/tmp
-
-for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/ \
--name *sense-counts.txt`; do cp $file \
--t $HOME/scratch/PPDbRNAseqTimeCourse/Count_summarisation/sense/tmp; \
-done
-
-# Transfer all files from tmp to laptop, using WinSCP, then remove tmp folder:
-rm -r tmp
 
 
 ########################################
